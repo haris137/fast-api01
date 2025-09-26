@@ -36,16 +36,40 @@ class Feedback(BaseModel):
     phone: str
     feedback: str
 
-# Initialize MongoDB connection from environment variables
-client = AsyncIOMotorClient(os.getenv('MONGODB_URL'))
-db = client[os.getenv('DB_NAME')]
-orderCollection = db[os.getenv('COLLECTION_NAME')]
-feedbackCollection = db[os.getenv('COLLECTION_NAME02')]
+# Initialize MongoDB with error handling for deployment
+try:
+    mongodb_url = os.getenv('MONGODB_URL')
+    if not mongodb_url:
+        print("WARNING: MONGODB_URL not set - database functions will be disabled")
+        client = None
+        db = None
+        orderCollection = None
+        feedbackCollection = None
+    else:
+        client = AsyncIOMotorClient(mongodb_url)
+        db = client[os.getenv('DB_NAME', 'kohinoor_db')]
+        orderCollection = db[os.getenv('COLLECTION_NAME', 'orders')]
+        feedbackCollection = db[os.getenv('COLLECTION_NAME02', 'feedbacks')]
+        print("Database connected successfully")
+except Exception as e:
+    print(f"Database connection failed: {e}")
+    client = None
+    db = None
+    orderCollection = None
+    feedbackCollection = None
 
-# Setup for sending email
-app_pass =  os.getenv('APP_PASSWORD')
-sender = os.getenv('SENDER_GMAIL')
-owner = os.getenv('OWNER_GMAIL')
+# Setup for sending email with error handling
+try:
+    app_pass = os.getenv('APP_PASSWORD')
+    sender = os.getenv('SENDER_GMAIL')
+    owner = os.getenv('OWNER_GMAIL')
+    if not all([app_pass, sender, owner]):
+        print("WARNING: Email credentials not set - email functions disabled")
+except Exception as e:
+    print(f"Email setup failed: {e}")
+    app_pass = None
+    sender = None
+    owner = None
 
 
 @app.get("/")
